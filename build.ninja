@@ -1,0 +1,20 @@
+# build.ninja
+
+# Define the Go compiler
+go = go
+
+# Define the output binary name
+binary = bin/rsscan
+
+# Define the source files
+srcs = ./cmd/rsscan/main.go
+
+# Default build target
+rule go_build
+  command = $go build -o $out $in
+  description = Building $out
+
+build $binary: go_build $srcs
+
+# Default target
+default $binary
