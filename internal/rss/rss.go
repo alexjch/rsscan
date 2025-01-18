@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 
@@ -60,8 +61,15 @@ func BuildEpisodeName(title string) string {
 
 func DownloadLatestPodcast(feedData *common.PodcastMetadata) error {
 
+	dataDir, err := common.GetDataDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	episodesDir := fmt.Sprintf("%s/episodes", dataDir)
+
 	// Create the episodes directory if it doesn't exist
-	if err := os.MkdirAll("episodes", os.ModePerm); err != nil {
+	if err := os.MkdirAll(episodesDir, os.ModePerm); err != nil {
 		return err
 	}
 
@@ -73,8 +81,9 @@ func DownloadLatestPodcast(feedData *common.PodcastMetadata) error {
 	defer response.Body.Close()
 
 	// Create a file to save the episode
-	filePath := BuildEpisodeName(feedData.ChannelTitle)
-	outFile, err := os.Create(filePath)
+	fileName := BuildEpisodeName(feedData.ChannelTitle)
+	episodeFileName := fmt.Sprintf("%s/%s.mp3", episodesDir, fileName)
+	outFile, err := os.Create(episodeFileName)
 	if err != nil {
 		return err
 	}

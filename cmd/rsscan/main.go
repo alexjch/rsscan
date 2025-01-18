@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"rsscan/internal/common"
 	"rsscan/internal/db"
 	"rsscan/internal/rss"
 
@@ -81,8 +82,17 @@ func updateEpisodesCmd(database *buntdb.DB) error {
 	return nil
 }
 
+func getDBPath() string {
+	path, err := common.GetDataDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return fmt.Sprintf("%s/podcasts.db", path)
+}
+
 func main() {
-	database, err := db.OpenDB("podcasts.db")
+	dbFile := getDBPath()
+	database, err := db.OpenDB(dbFile)
 	if err != nil {
 		log.Fatal(err)
 	}

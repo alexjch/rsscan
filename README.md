@@ -9,7 +9,7 @@ I'm sick of podcast applications in every single device and I prefer to have the
 
 *Building*
 ```
-ninja
+ninja bin/rsscan
 ```
 
 *Usage*
@@ -28,5 +28,9 @@ Software Engineering Radio - the podcast for professional software developers
 
 # update saved podcasts metadata and episodes (if new episode exists)
 ./bin/rsscan -update
+
+# custom data directory (where metadata and audio is saved)
+export RSSCAN_DATA_DIR=/var/lib/rsscan # should exists and have proper permissions
+./bin/rsscan -add https://seradio.libsyn.com/rss
 
 ```
