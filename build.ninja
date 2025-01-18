@@ -4,17 +4,32 @@
 go = go
 
 # Define the output binary name
-binary = bin/rsscan
+binary = ./bin/rsscan
 
 # Define the source files
 srcs = ./cmd/rsscan/main.go
 
+# Define installation paths
+install_bin_path = /usr/local/bin/rsscan
+install_systemd_srvc_path = /etc/systemd/system/rsscan.service
+install_systemd_tmer_path = /etc/systemd/system/rsscan.timer
+
 # Default build target
 rule go_build
-  command = $go build -o $out $in
+  command = $go build -ldflags "-X main.version=$$(git rev-parse --short HEAD)" -o $out $in
   description = Building $out
 
 build $binary: go_build $srcs
+
+# Installation
+rule install_file
+  command = cp $in $out
+  description = Installing $in to $out
+
+# Installation targets
+build $install_bin_path: install_file ./bin/rsscan
+build $install_systemd_srvc_path: install_file ./systemd/rsscan.service
+build $install_systemd_tmer_path: install_file ./systemd/rsscan.timer
 
 # Default target
 default $binary

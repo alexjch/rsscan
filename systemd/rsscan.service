@@ -1,0 +1,7 @@
+[Unit]
+Description=Run rsscan with -update
+
+[Service]
+Type=oneshot
+WorkingDirectory=/var/lib/rsscan
+ExecStart=/usr/local/bin/rsscan -v -update
