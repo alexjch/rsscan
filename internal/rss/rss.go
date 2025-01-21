@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 
@@ -50,28 +49,29 @@ func ListRSSFeeds(database *buntdb.DB) ([]common.PodcastMetadata, error) {
 	return db.ListFeeds(database)
 }
 
-// generate quick hash for episode name and limit to 32 characters
-func BuildEpisodeName(title string) string {
-	outName := ""
-	for _, char := range title {
-		outName += fmt.Sprintf("%02X", char)
-	}
-	return outName[:32]
-}
-
-func DownloadLatestPodcast(feedData *common.PodcastMetadata) error {
-
+func BuildEpisodePath(title string) (string, error) {
 	dataDir, err := common.GetDataDir()
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	episodesDir := fmt.Sprintf("%s/episodes", dataDir)
-
 	// Create the episodes directory if it doesn't exist
 	if err := os.MkdirAll(episodesDir, os.ModePerm); err != nil {
-		return err
+		return "", err
 	}
+
+	fileName := ""
+	for _, char := range title {
+		fileName += fmt.Sprintf("%02X", char)
+	}
+
+	episodeFileName := fmt.Sprintf("%s/%s.mp3", episodesDir, fileName[:32])
+
+	return episodeFileName, nil
+}
+
+func DownloadLatestPodcast(feedData *common.PodcastMetadata) error {
 
 	// Download the latest episode
 	response, err := http.Get(feedData.AudioURL)
@@ -80,9 +80,8 @@ func DownloadLatestPodcast(feedData *common.PodcastMetadata) error {
 	}
 	defer response.Body.Close()
 
-	// Create a file to save the episode
-	fileName := BuildEpisodeName(feedData.ChannelTitle)
-	episodeFileName := fmt.Sprintf("%s/%s.mp3", episodesDir, fileName)
+	// Create a file to save
+	episodeFileName, err := BuildEpisodePath(feedData.ChannelTitle)
 	outFile, err := os.Create(episodeFileName)
 	if err != nil {
 		return err

@@ -52,11 +52,14 @@ func updateEpisodesCmd(database *buntdb.DB) error {
 			log.Fatal(err)
 		}
 
-		filePath := rss.BuildEpisodeName(feed.ChannelTitle)
+		filePath, err := rss.BuildEpisodePath(feed.ChannelTitle)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		// TODO: do a proper time check
 		if latest.PubDate != feed.PubDate {
-			// refresh feed
+			// refresh feed metadata
 			err := addFeedCmd(database, feed.RSSURL)
 			if err != nil {
 				log.Fatal(err)
