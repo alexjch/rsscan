@@ -16,7 +16,7 @@ install_systemd_tmer_path = /etc/systemd/system/rsscan.timer
 
 # Default build target
 rule go_build
-  command = $go build -ldflags "-X main.version=$$(git rev-parse --short HEAD)" -o $out $in
+  command = $go build -ldflags "-X main.version=$$(git describe --tags --always)" -o $out $in
   description = Building $out
 
 build $binary: go_build $srcs

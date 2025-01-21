@@ -90,6 +90,22 @@ func getDBPath() string {
 	return fmt.Sprintf("%s/podcasts.db", path)
 }
 
+func printInfo() {
+	path, err := common.GetDataDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("=====================================")
+	fmt.Println("  RSScan - A simple RSS feed reader")
+	fmt.Printf("  Version:  %s\n", version)
+	fmt.Printf("  Data dir: %s\n", path)
+	fmt.Println("======================================")
+	fmt.Println()
+}
+
+var version string
+
 func main() {
 	dbFile := getDBPath()
 	database, err := db.OpenDB(dbFile)
@@ -101,9 +117,14 @@ func main() {
 	addFeed := flag.String("add", "", "Add a new RSS feed")
 	removeFeed := flag.String("remove", "", "Remove an RSS feed")
 	listFeeds := flag.Bool("list", false, "List saved RSS feeds")
+	info := flag.Bool("v", false, "Verbose")
 	updateEpisodes := flag.Bool("update", false, "Update feed information and latest episode if needed")
 
 	flag.Parse()
+
+	if *info {
+		printInfo()
+	}
 
 	if *addFeed != "" {
 		err = addFeedCmd(database, *addFeed)
