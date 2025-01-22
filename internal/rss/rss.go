@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sync"
 
 	"rsscan/internal/common"
 	"rsscan/internal/db"
@@ -82,6 +83,11 @@ func DownloadLatestPodcast(feedData *common.PodcastMetadata) error {
 
 	// Create a file to save
 	episodeFileName, err := BuildEpisodePath(feedData.ChannelTitle)
+
+	fmt.Printf("Donwloading: %s\n   Episode: %s\n   Location: %s\n",
+		feedData.ChannelTitle, feedData.ItemTitle, episodeFileName)
+
+	// Create outfile
 	outFile, err := os.Create(episodeFileName)
 	if err != nil {
 		return err
@@ -93,7 +99,67 @@ func DownloadLatestPodcast(feedData *common.PodcastMetadata) error {
 	if err != nil {
 		return err
 	}
+	outFile.Close()
 
-	fmt.Printf("Donwloading: %s\n   Episode: %s\n", feedData.ChannelTitle, feedData.ItemTitle)
+	return nil
+}
+
+func checkEpisodeUpdate(feed common.PodcastMetadata, database *buntdb.DB, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	latest, err := RequestRSSFeed(feed.RSSURL)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+		return
+	}
+
+	filePath, err := BuildEpisodePath(feed.ChannelTitle)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+		return
+	}
+
+	if latest.PubDate != feed.PubDate {
+		// Update metadata
+		if err := AddRSSFeed(database, latest); err != nil {
+			fmt.Printf("Error: %s\n", err)
+			return
+		}
+		// Remove old file
+		err = os.Remove(filePath)
+		if err != nil {
+			fmt.Printf("Error: %s\n", err)
+			return
+		}
+	}
+
+	fmt.Printf("%s %s %s\n", latest.PubDate, feed.PubDate, filePath)
+	// Download the latest episode if it doesn't exist
+	info, err := os.Stat(filePath)
+	fmt.Printf("%+v, %+v\n", info, err)
+	if os.IsNotExist(err) {
+		err := DownloadLatestPodcast(latest)
+		if err != nil {
+			fmt.Printf("Error: %s\n", err)
+			return
+		}
+	}
+}
+
+func UpdateEpisodes(database *buntdb.DB) error {
+	var wg sync.WaitGroup
+	feeds, err := ListRSSFeeds(database)
+
+	if err != nil {
+		return err
+	}
+
+	for _, feed := range feeds {
+		wg.Add(1)
+		go checkEpisodeUpdate(feed, database, &wg)
+	}
+
+	wg.Wait()
+
 	return nil
 }

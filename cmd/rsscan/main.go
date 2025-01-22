@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
 	"rsscan/internal/common"
 	"rsscan/internal/db"
 	"rsscan/internal/rss"
@@ -17,13 +16,7 @@ func addFeedCmd(database *buntdb.DB, rssURL string) error {
 	if err != nil {
 		return err
 	}
-	err = rss.AddRSSFeed(database, metadata)
-	return err
-}
-
-func removeFeedCmd(database *buntdb.DB, rssURL string) error {
-	err := rss.RemoveRSSFeed(database, rssURL)
-	return err
+	return rss.AddRSSFeed(database, metadata)
 }
 
 func listFeedsCmd(database *buntdb.DB) error {
@@ -35,53 +28,6 @@ func listFeedsCmd(database *buntdb.DB) error {
 		fmt.Printf("%s\n  Episode: %s\n  Published:%s\n",
 			feed.ChannelTitle, feed.ItemTitle, feed.PubDate)
 	}
-	return nil
-}
-
-func updateEpisodesCmd(database *buntdb.DB) error {
-
-	feeds, err := rss.ListRSSFeeds(database)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Refresh feed
-	for _, feed := range feeds {
-		latest, err := rss.RequestRSSFeed(feed.RSSURL)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		filePath, err := rss.BuildEpisodePath(feed.ChannelTitle)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// TODO: do a proper time check
-		if latest.PubDate != feed.PubDate {
-			// refresh feed metadata
-			err := addFeedCmd(database, feed.RSSURL)
-			if err != nil {
-				log.Fatal(err)
-			}
-			fmt.Printf("Updating.... %s\n  Episode: %s\n  Published:%s\n",
-				feed.ChannelTitle, feed.ItemTitle, feed.PubDate)
-			err = os.Remove(filePath)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-
-		// Check if the file exists, download if not
-		_, err = os.Stat(filePath)
-		if os.IsNotExist(err) {
-			err := rss.DownloadLatestPodcast(&feed)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -132,11 +78,11 @@ func main() {
 	if *addFeed != "" {
 		err = addFeedCmd(database, *addFeed)
 	} else if *removeFeed != "" {
-		err = removeFeedCmd(database, *removeFeed)
+		err = rss.RemoveRSSFeed(database, *removeFeed)
 	} else if *listFeeds {
 		err = listFeedsCmd(database)
 	} else if *updateEpisodes {
-		err = updateEpisodesCmd(database)
+		err = rss.UpdateEpisodes(database)
 	} else {
 		flag.Usage()
 	}
